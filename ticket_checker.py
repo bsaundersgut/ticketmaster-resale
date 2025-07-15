@@ -31,7 +31,17 @@ driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), opti
 url = "https://www.ticketmaster.ie/all-together-now-weekend-camping-portlaw-31-07-2025/event/18006117864E1B03"
 driver.get(url)
 
-def wait_for_resale_span(timeout=10):
+# Accept Cookies if Prompt Appears
+try:
+    accept_btn = WebDriverWait(driver, 5).until(
+        EC.element_to_be_clickable((By.XPATH, '//button[text()="Accept Cookies"]'))
+    )
+    accept_btn.click()
+    print("🍪 Accepted cookies.")
+except:
+    print("🍪 No cookie prompt found.")
+
+def wait_for_resale_span(timeout=5):
     """Wait for the 'Verified Resale Ticket' span to appear."""
     try:
         print(f"⏳ Waiting up to {timeout}s for Verified Resale Ticket to appear...")
@@ -75,7 +85,7 @@ try:
             print(f"⚠️ Couldn't click 'Find Tickets': {e}")
             break
 
-        wait_for_resale_span(timeout=10)
+        wait_for_resale_span(timeout=5)
         found = check_for_resale()
         if found:
             break
