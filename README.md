@@ -6,17 +6,7 @@ A Selenium-based script to monitor Ticketmaster resale tickets and alert you whe
 
 ## ⚙️ Setup
 
-### 1. Create a virtual environment (optional but recommended)
-
-```bash
-python -m venv venv
-# On Windows
-venv\Scripts\activate
-# On macOS/Linux
-source venv/bin/activate
-```
-
-### 2. Install required Python packages
+### 1. Install required Python packages
 
 ```bash
 pip install -r requirements.txt
