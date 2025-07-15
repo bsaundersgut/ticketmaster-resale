@@ -2,7 +2,6 @@ import sys
 import os
 import time
 import winsound
-import io
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
@@ -16,7 +15,7 @@ sys.stderr = open(os.devnull, 'w')
 # ─── Setup WebDriver ───
 options = webdriver.ChromeOptions()
 options.add_argument("--start-maximized")
-options.add_experimental_option("excludeSwitches", ["enable-logging"])  # Suppress warnings
+options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
 # Auto-allow notifications and location
 prefs = {
@@ -25,51 +24,45 @@ prefs = {
 }
 options.add_experimental_option("prefs", prefs)
 
+# ─── Launch WebDriver ───
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
-# ─── Ticketmaster Event Page ───
+# ─── Ticketmaster Event URL ───
 url = "https://www.ticketmaster.ie/all-together-now-weekend-camping-portlaw-31-07-2025/event/18006117864E1B03"
 driver.get(url)
 
-def check_for_resale():
-    """Check if resale tickets are available."""
+def wait_for_resale_span(timeout=10):
+    """Wait for the 'Verified Resale Ticket' span to appear."""
     try:
-        # If placeholder is missing, maybe resale section changed
-        placeholder = driver.find_elements(By.XPATH, '//*[contains(text(), "Resale Tickets will appear below when they are available.")]')
+        print(f"⏳ Waiting up to {timeout}s for Verified Resale Ticket to appear...")
+        WebDriverWait(driver, timeout).until(
+            EC.presence_of_element_located(
+                (By.XPATH, '//span[contains(text(), "Verified Resale Ticket")]')
+            )
+        )
+        print("✅ Verified Resale Ticket span found.")
+        return True
+    except:
+        print("❌ No Verified Resale Ticket span found after timeout.")
+        return False
 
-        if not placeholder:
-            print("📛 Placeholder missing — possibly updating/resale incoming...")
-            return False
-
-        buttons = driver.find_elements(By.XPATH, '//button[contains(., "Weekend Camping")]')
-
-        if buttons:
-            print(f"🎯 Resale ticket(s) found: {[btn.text for btn in buttons]}")
-            winsound.Beep(1000, 1000)
+def check_for_resale():
+    """Check if resale ticket span is present."""
+    try:
+        spans = driver.find_elements(By.XPATH, '//span[contains(text(), "Verified Resale Ticket")]')
+        if spans:
+            print(f"🎯 Resale ticket(s) found! Count: {len(spans)}")
+            winsound.Beep(1000, 1500)
             print("🛑 Manual intervention mode — browser paused for purchase.")
             return True
         else:
-            print("❌ No 'Weekend Camping' resale tickets found.")
+            print("❌ No resale tickets found.")
             return False
     except Exception as e:
-        print(f"❌ Error checking resale: {e}")
+        print(f"❌ Error during resale check: {e}")
         return False
 
-def wait_for_dom_update(wait_seconds=5):
-    """Wait for DOM to update by monitoring a known element (resale section) disappearing then reappearing."""
-    try:
-        print("⏳ Waiting for page to update...")
-        WebDriverWait(driver, wait_seconds).until_not(
-            EC.presence_of_element_located((By.XPATH, '//*[contains(text(), "Resale Tickets will appear below when they are available.")]'))
-        )
-        WebDriverWait(driver, wait_seconds).until(
-            EC.presence_of_element_located((By.XPATH, '//div[contains(@class, "ticketSelection")]'))
-        )
-        print("✅ Page updated.")
-    except:
-        print("⚠️ Timeout or element not changed — continuing anyway.")
-
-# ─── Main Smart Loop ───
+# ─── Main Loop ───
 try:
     while True:
         try:
@@ -82,42 +75,19 @@ try:
             print(f"⚠️ Couldn't click 'Find Tickets': {e}")
             break
 
-        # Smart wait for DOM update after clicking "Find Tickets"
-        wait_for_dom_update(wait_seconds=6)
-
-        #Inject fake resale ticket (for test only)
-        # driver.execute_script("""
-            # let btn = document.createElement("button");
-            # btn.innerText = "Weekend Camping - Resale €199";
-            # btn.style.margin = "10px";
-            # btn.style.padding = "10px";
-            # btn.style.background = "#d00";
-            # btn.style.color = "#fff";
-            # btn.className = "tm-button";
-            # document.body.appendChild(btn);
-        # """)
-
+        wait_for_resale_span(timeout=10)
         found = check_for_resale()
         if found:
             break
 
-
-        found = check_for_resale()
-        if found:
-            break
-
-        # Click "Search Again" if needed
         try:
-            search_again = WebDriverWait(driver, 6).until(
+            search_again = WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable((By.XPATH, '//button[.//span[text()="Search Again"]]'))
             )
             print("🔁 Clicking 'Search Again' to retry...")
             search_again.click()
         except Exception as e:
             print(f"🔄 'Search Again' not found or failed: {e}")
-
-        # Wait for "Search Again" to take effect
-        wait_for_dom_update(wait_seconds=5)
 
 except KeyboardInterrupt:
     print("🛑 Script interrupted manually.")
