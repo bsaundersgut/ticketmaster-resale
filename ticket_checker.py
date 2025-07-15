@@ -41,7 +41,7 @@ try:
 except:
     print("🍪 No cookie prompt found.")
 
-def wait_for_resale_span(timeout=5):
+def wait_for_resale_span(timeout=7):
     """Wait for the 'Verified Resale Ticket' span to appear."""
     try:
         print(f"⏳ Waiting up to {timeout}s for Verified Resale Ticket to appear...")
@@ -85,7 +85,7 @@ try:
             print(f"⚠️ Couldn't click 'Find Tickets': {e}")
             break
 
-        wait_for_resale_span(timeout=5)
+        wait_for_resale_span(timeout=7)
         found = check_for_resale()
         if found:
             break
